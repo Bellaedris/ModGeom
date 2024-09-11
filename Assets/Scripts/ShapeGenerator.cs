@@ -112,23 +112,61 @@ public class ShapeGenerator : MonoBehaviour
         // both ends
         float step = Mathf.Deg2Rad * (360f / cylinderMeridians);
         
-        // add a vertex at the center of each ends of the cylinder
-        vertices.Add(new Vector3(0f, 0f, 0f));
-        vertices.Add(new Vector3(0f, cylinderHeight, 0f));
         for (int i = 0; i < cylinderMeridians; i++)
         {
             vertices.Add(new Vector3(Mathf.Cos(i * step), 0f, Mathf.Sin(i * step)));
-            Debug.Log(new Vector3(Mathf.Cos(i * step), 0f, Mathf.Sin(i * step)));
-            //vertices.Add(new Vector3(Mathf.Cos(i * step), cylinderHeight, Mathf.Sin(i * step)));
+            vertices.Add(new Vector3(Mathf.Cos(i * step), cylinderHeight, Mathf.Sin(i * step)));
         }
         
+        // add a vertex at the center of each ends of the cylinder
+        // penultimate vertex is the bottom center, last one is the top center.
+        vertices.Add(new Vector3(0f, 0f, 0f));
+        vertices.Add(new Vector3(0f, cylinderHeight, 0f));
+        
+        //utilities to stores the indices of the centers
+        int topCenterIndex = vertices.Count - 1;
+        int bottomCenterIndex = vertices.Count - 2;
+        
         // indices
-        for (int i = 2; i < cylinderMeridians; i++)
+        for (int i = 0; i < cylinderMeridians - 1; i++)
         {
-            triangles.Add(i);
-            triangles.Add(i + 1);
-            triangles.Add(0);
+            // "body" of the cylinder
+            int index = i * 2;
+            triangles.Add(index);
+            triangles.Add(index + 1);
+            triangles.Add(index + 2);
+            
+            triangles.Add(index + 1);
+            triangles.Add(index + 3);
+            triangles.Add(index + 2);
+            
+            // "closures" of the cylinder
+            triangles.Add(index);
+            triangles.Add(index + 2);
+            triangles.Add(bottomCenterIndex);
+            
+            triangles.Add(index + 1);
+            triangles.Add(topCenterIndex);
+            triangles.Add(index + 3);
         }
+        //last triangles (better to do this compared to a modulo every step)
+        int lastIndex = (cylinderMeridians - 1) * 2;
+        triangles.Add(lastIndex);
+        triangles.Add(lastIndex + 1);
+        triangles.Add(0);
+        
+        triangles.Add(lastIndex + 1);
+        triangles.Add(1);
+        triangles.Add(0);
+        
+        // "closures" of the cylinder
+        triangles.Add(lastIndex);
+        triangles.Add(lastIndex + 2);
+        triangles.Add(bottomCenterIndex);
+            
+        triangles.Add(lastIndex + 1);
+        triangles.Add(topCenterIndex);
+        triangles.Add(lastIndex + 3);
         
         mesh.SetVertices(vertices.ToArray());
         mesh.RecalculateNormals();
