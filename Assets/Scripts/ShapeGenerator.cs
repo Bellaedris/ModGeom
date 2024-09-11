@@ -30,6 +30,13 @@ public class ShapeGenerator : MonoBehaviour
     public float cylinderHeight = 5f;
     
     public int cylinderMeridians = 12;
+
+    [Header("Sphere")]
+    public float SphereRadius = 5f;
+
+    public int sphereStacks = 12;
+    
+    public int sphereMeridians = 24;
     
     
     public void GenerateShape()
@@ -45,7 +52,7 @@ public class ShapeGenerator : MonoBehaviour
                 mesh = GenerateCylinder();
                 break;
             case Shape.Sphere:
-                mesh = GeneratePlane();
+                mesh = GenerateSphere();
                 break;
             case Shape.Cone:
                 mesh = GeneratePlane();
@@ -56,7 +63,7 @@ public class ShapeGenerator : MonoBehaviour
         }
         
         GameObject shape = new GameObject(shapeToGenerate.ToString());
-
+    
         MeshFilter filter = shape.AddComponent<MeshFilter>();
         filter.sharedMesh = mesh;
         var renderer = shape.AddComponent<MeshRenderer>();
@@ -106,7 +113,6 @@ public class ShapeGenerator : MonoBehaviour
         Mesh mesh = new Mesh();
         
         var vertices = new List<Vector3>();
-        var normals = new List<Vector3>();
         var triangles = new List<int>();
         
         // both ends
@@ -161,17 +167,67 @@ public class ShapeGenerator : MonoBehaviour
         
         // "closures" of the cylinder
         triangles.Add(lastIndex);
-        triangles.Add(lastIndex + 2);
+        triangles.Add(0);
         triangles.Add(bottomCenterIndex);
             
         triangles.Add(lastIndex + 1);
         triangles.Add(topCenterIndex);
-        triangles.Add(lastIndex + 3);
+        triangles.Add(1);
+
+        Debug.Log((lastIndex + 1) + " " + topCenterIndex + " " + (lastIndex + 3));
         
         mesh.SetVertices(vertices.ToArray());
         mesh.RecalculateNormals();
         mesh.SetTriangles(triangles.ToArray(), 0);
 
         return mesh;
+    }
+
+    public Mesh GenerateSphere()
+    {
+        Mesh mesh = new Mesh();
+
+        var vertices = new List<Vector3>();
+        var normals = new List<Vector3>();
+        var triangles = new List<int>();
+        
+        // both ends
+        float stepMeridians = Mathf.Deg2Rad * (360f / sphereMeridians);
+        float stepStacks = Mathf.Deg2Rad * (360f / sphereStacks);
+
+        float x, y, z;
+        for(int i = 0; i < sphereStacks; i++)
+        {
+            z = Mathf.Cos(i * stepStacks);
+            float sinPhi = Mathf.Sin(i * stepStacks);
+            for(int j = 0; j < sphereMeridians; j++)
+            {
+                x = Mathf.Cos(i * stepMeridians) * sinPhi;
+                y = Mathf.Sin(i * stepMeridians) * sinPhi;
+                vertices.Add(new Vector3(x, y, z) * SphereRadius);
+            }
+        }
+
+        // bottom/top vertices
+        vertices.Add(new Vector3(0, -SphereRadius, 0));
+        vertices.Add(new Vector3(0, SphereRadius, 0));
+
+        for(int i = 0; i < sphereMeridians; i++)
+        {
+            triangles.Add(i);
+            triangles.Add((i + 1) % sphereMeridians);
+            triangles.Add(vertices.Count - 2);
+
+            int lastStackBegin = sphereMeridians * sphereStacks;
+            triangles.Add(i + lastStackBegin);
+            triangles.Add((i + lastStackBegin + 1) % sphereMeridians);
+            triangles.Add(vertices.Count - 1);
+        }
+
+        mesh.SetVertices(vertices.ToArray());
+        mesh.RecalculateNormals();
+        mesh.SetTriangles(triangles.ToArray(), 0);
+
+        return mesh;   
     }
 }
