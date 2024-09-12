@@ -192,40 +192,63 @@ public class ShapeGenerator : MonoBehaviour
         var triangles = new List<int>();
         
         // both ends
-        float stepMeridians = Mathf.Deg2Rad * (360f / sphereMeridians);
-        float stepStacks = Mathf.Deg2Rad * (360f / sphereStacks);
+        float stepMeridians = 2f * Mathf.PI / (float)sphereMeridians;
+        float stepStacks = Mathf.PI / (float)sphereStacks;
 
         float x, y, z;
         for(int i = 0; i < sphereStacks; i++)
         {
-            z = Mathf.Cos(i * stepStacks);
+            y = Mathf.Cos(i * stepStacks);
             float sinPhi = Mathf.Sin(i * stepStacks);
             for(int j = 0; j < sphereMeridians; j++)
             {
-                x = Mathf.Cos(i * stepMeridians) * sinPhi;
-                y = Mathf.Sin(i * stepMeridians) * sinPhi;
-                vertices.Add(new Vector3(x, y, z) * SphereRadius);
+                x = Mathf.Cos(j * stepMeridians) * sinPhi;
+                z = Mathf.Sin(j * stepMeridians) * sinPhi;
+                Vector3 vert = new Vector3(x, y, z);
+                vertices.Add(vert * SphereRadius);
+                normals.Add(Vector3.zero - vert);
             }
         }
 
         // bottom/top vertices
         vertices.Add(new Vector3(0, -SphereRadius, 0));
+        normals.Add(Vector3.down);
         vertices.Add(new Vector3(0, SphereRadius, 0));
+        normals.Add(Vector3.up);
 
+        for (int i = 0; i < sphereStacks - 1; i++)
+        {
+            int ind = i * sphereMeridians;
+            for (int j = 0; j < sphereMeridians; j++)
+            {
+                int current = ind + j;
+                int next = ind + (j + 1) % sphereMeridians;
+                triangles.Add(current + sphereMeridians);
+                triangles.Add(current);
+                triangles.Add(next + sphereMeridians);
+               
+                triangles.Add(next + sphereMeridians);
+                triangles.Add(current);
+                triangles.Add(next);
+            }
+        }
+
+        // top/bottom triangles
         for(int i = 0; i < sphereMeridians; i++)
         {
             triangles.Add(i);
             triangles.Add((i + 1) % sphereMeridians);
-            triangles.Add(vertices.Count - 2);
-
-            int lastStackBegin = sphereMeridians * sphereStacks;
-            triangles.Add(i + lastStackBegin);
-            triangles.Add((i + lastStackBegin + 1) % sphereMeridians);
             triangles.Add(vertices.Count - 1);
+        
+            int lastStackBegin = sphereMeridians * (sphereStacks - 1);
+            triangles.Add(lastStackBegin + i);
+            triangles.Add(lastStackBegin + (i + 1) % sphereMeridians);
+            triangles.Add(vertices.Count - 2);
         }
 
         mesh.SetVertices(vertices.ToArray());
-        mesh.RecalculateNormals();
+        //mesh.RecalculateNormals();
+        mesh.SetNormals(normals.ToArray());
         mesh.SetTriangles(triangles.ToArray(), 0);
 
         return mesh;   
