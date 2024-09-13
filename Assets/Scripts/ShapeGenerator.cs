@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
@@ -38,6 +39,16 @@ public class ShapeGenerator : MonoBehaviour
     
     public int sphereMeridians = 24;
     
+    [Header("Cone")]
+    public bool coneTruncated = false;
+    public float coneBaseRadius = 5f;
+    public float coneTipRadius = .5f;
+    public float coneHeight = 5f;
+
+    public int coneStacks = 12;
+    
+    public int coneMeridians = 24;
+    
     
     public void GenerateShape()
     {
@@ -55,10 +66,7 @@ public class ShapeGenerator : MonoBehaviour
                 mesh = GenerateSphere();
                 break;
             case Shape.Cone:
-                mesh = GeneratePlane();
-                break;
-            case Shape.Pacman:
-                mesh = GeneratePlane();
+                mesh = GenerateCone();
                 break;
         }
         
@@ -249,6 +257,80 @@ public class ShapeGenerator : MonoBehaviour
         mesh.SetVertices(vertices.ToArray());
         //mesh.RecalculateNormals();
         mesh.SetNormals(normals.ToArray());
+        mesh.SetTriangles(triangles.ToArray(), 0);
+
+        return mesh;   
+    }
+    
+    public Mesh GenerateCone()
+    {
+        Mesh mesh = new Mesh();
+
+        var vertices = new List<Vector3>();
+        var triangles = new List<int>();
+        
+        // both ends
+        float stepMeridians = 2f * Mathf.PI / (float)coneMeridians;
+        float stepStacks = coneHeight / (float)coneStacks;
+
+        float x, y, z;
+        for(int i = 0; i < coneStacks; i++)
+        {
+            y = i * stepStacks;
+            float currentRadius;
+            if (coneTruncated)
+                currentRadius = Mathf.Lerp(coneBaseRadius, coneTipRadius, (i * stepStacks) / coneHeight);
+            else
+                currentRadius = Mathf.Lerp(coneBaseRadius, 0f, (i * stepStacks) / coneHeight);
+            for(int j = 0; j < coneMeridians; j++)
+            {
+                x = Mathf.Cos(j * stepMeridians) * currentRadius;
+                z = Mathf.Sin(j * stepMeridians) * currentRadius;
+                Vector3 vert = new Vector3(x, y, z);
+                vertices.Add(vert);
+            }
+        }
+
+        // bottom/top vertices
+        if (coneTruncated)
+            vertices.Add(new Vector3(0, (coneStacks - 1) * coneHeight / (float)coneStacks, 0));
+        else
+            vertices.Add(new Vector3(0, coneHeight, 0));
+        vertices.Add(new Vector3(0, 0, 0));
+
+        for (int i = 0; i < coneStacks - 1; i++)
+        {
+            int ind = i * coneMeridians;
+            for (int j = 0; j < coneMeridians; j++)
+            {
+                int current = ind + j;
+                int next = ind + (j + 1) % coneMeridians;
+                triangles.Add(current);
+                triangles.Add(current + coneMeridians);
+                triangles.Add(next + coneMeridians);
+               
+                triangles.Add(current);
+                triangles.Add(next + coneMeridians);
+                triangles.Add(next);
+            }
+        }
+
+        // top/bottom triangles
+        for(int i = 0; i < coneMeridians; i++)
+        {
+            triangles.Add(i);
+            triangles.Add((i + 1) % coneMeridians);
+            triangles.Add(vertices.Count - 1);
+            
+            int lastStackBegin = coneMeridians * (coneStacks - 1);
+            triangles.Add(lastStackBegin + i);
+            triangles.Add(vertices.Count - 2);
+            triangles.Add(lastStackBegin + (i + 1) % coneMeridians);
+        }
+
+        mesh.SetVertices(vertices.ToArray());
+        //mesh.RecalculateNormals();
+        mesh.RecalculateNormals();
         mesh.SetTriangles(triangles.ToArray(), 0);
 
         return mesh;   
