@@ -38,15 +38,16 @@ public class ShapeGenerator : MonoBehaviour
     public int sphereStacks = 12;
     
     public int sphereMeridians = 24;
+    public bool sphereTruncated = false;
+
+    public int sphereTruncateAt = 24;
     
     [Header("Cone")]
     public bool coneTruncated = false;
     public float coneBaseRadius = 5f;
     public float coneTipRadius = .5f;
     public float coneHeight = 5f;
-
     public int coneStacks = 12;
-    
     public int coneMeridians = 24;
     
     
@@ -204,7 +205,7 @@ public class ShapeGenerator : MonoBehaviour
         float stepStacks = Mathf.PI / (float)sphereStacks;
 
         float x, y, z;
-        for(int i = 0; i < sphereStacks; i++)
+        for(int i = 0; i <= sphereStacks; i++)
         {
             y = Mathf.Cos(i * stepStacks);
             float sinPhi = Mathf.Sin(i * stepStacks);
@@ -214,49 +215,114 @@ public class ShapeGenerator : MonoBehaviour
                 z = Mathf.Sin(j * stepMeridians) * sinPhi;
                 Vector3 vert = new Vector3(x, y, z);
                 vertices.Add(vert * SphereRadius);
-                normals.Add(Vector3.zero - vert);
             }
         }
 
-        // bottom/top vertices
-        vertices.Add(new Vector3(0, -SphereRadius, 0));
-        normals.Add(Vector3.down);
-        vertices.Add(new Vector3(0, SphereRadius, 0));
-        normals.Add(Vector3.up);
-
-        for (int i = 0; i < sphereStacks - 1; i++)
+        if (sphereTruncated)
         {
-            int ind = i * sphereMeridians;
-            for (int j = 0; j < sphereMeridians; j++)
+            float step = SphereRadius / (float)sphereStacks;
+
+            // add an extra vertex on the center of each stack so we can truncate
+            for(int i = sphereStacks; i >= 0; i--)
             {
-                int current = ind + j;
-                int next = ind + (j + 1) % sphereMeridians;
-                triangles.Add(current + sphereMeridians);
-                triangles.Add(current);
-                triangles.Add(next + sphereMeridians);
-               
-                triangles.Add(next + sphereMeridians);
-                triangles.Add(current);
-                triangles.Add(next);
+                vertices.Add(new Vector3(0, i * step * 2f - SphereRadius, 0));
+            }
+
+            int centerVerticesBegin = vertices.Count - sphereStacks;
+
+            for (int i = 0; i < sphereStacks; i++)
+            {
+                int ind = i * sphereMeridians;
+
+                // triangles from first vertex of each meridian to the center
+                triangles.Add(ind);
+                triangles.Add(centerVerticesBegin + i);
+                triangles.Add(centerVerticesBegin + i - 1);
+
+                triangles.Add(ind);
+                triangles.Add(ind + sphereMeridians);
+                triangles.Add(centerVerticesBegin + i);
+                
+                // triangles from last vertex of each meridian to the center
+                triangles.Add(ind + sphereTruncateAt);
+                triangles.Add(centerVerticesBegin + i);
+                triangles.Add(centerVerticesBegin + i - 1);
+
+                triangles.Add(ind + sphereTruncateAt + sphereMeridians);
+                triangles.Add(ind + sphereTruncateAt);
+                triangles.Add(centerVerticesBegin + i);
+
+                for (int j = 0; j < sphereTruncateAt; j++)
+                {
+                    int current = ind + j;
+                    int next = ind + j + 1;
+
+                    
+                    triangles.Add(current + sphereMeridians);
+                    triangles.Add(current);
+                    triangles.Add(next + sphereMeridians);
+                
+                    triangles.Add(next + sphereMeridians);
+                    triangles.Add(current);
+                    triangles.Add(next);
+                }
+            }
+
+            // top/bottom triangles
+            for(int i = 0; i < sphereTruncateAt; i++)
+            {
+                triangles.Add(i);
+                triangles.Add((i + 1) % sphereMeridians);
+                triangles.Add(centerVerticesBegin);
+            
+                int lastStackBegin = sphereMeridians * (sphereStacks - 1);
+                triangles.Add(lastStackBegin + i);
+                triangles.Add(lastStackBegin + (i + 1) % sphereMeridians);
+                triangles.Add(vertices.Count - 1);
             }
         }
-
-        // top/bottom triangles
-        for(int i = 0; i < sphereMeridians; i++)
+        else
         {
-            triangles.Add(i);
-            triangles.Add((i + 1) % sphereMeridians);
-            triangles.Add(vertices.Count - 1);
-        
-            int lastStackBegin = sphereMeridians * (sphereStacks - 1);
-            triangles.Add(lastStackBegin + i);
-            triangles.Add(lastStackBegin + (i + 1) % sphereMeridians);
-            triangles.Add(vertices.Count - 2);
+            // bottom/top vertices
+            vertices.Add(new Vector3(0, -SphereRadius, 0));
+            normals.Add(Vector3.down);
+            vertices.Add(new Vector3(0, SphereRadius, 0));
+            normals.Add(Vector3.up);
+
+            for (int i = 0; i < sphereStacks; i++)
+            {
+                int ind = i * sphereMeridians;
+                for (int j = 0; j < sphereMeridians; j++)
+                {
+                    int current = ind + j;
+                    int next = ind + (j + 1) % sphereMeridians;
+                    triangles.Add(current + sphereMeridians);
+                    triangles.Add(current);
+                    triangles.Add(next + sphereMeridians);
+                
+                    triangles.Add(next + sphereMeridians);
+                    triangles.Add(current);
+                    triangles.Add(next);
+                }
+            }
+
+            // top/bottom triangles
+            for(int i = 0; i < sphereMeridians; i++)
+            {
+                triangles.Add(i);
+                triangles.Add((i + 1) % sphereMeridians);
+                triangles.Add(vertices.Count - 1);
+            
+                int lastStackBegin = sphereMeridians * (sphereStacks - 1);
+                triangles.Add(lastStackBegin + i);
+                triangles.Add(lastStackBegin + (i + 1) % sphereMeridians);
+                triangles.Add(vertices.Count - 2);
+            }
         }
 
         mesh.SetVertices(vertices.ToArray());
-        //mesh.RecalculateNormals();
-        mesh.SetNormals(normals.ToArray());
+        mesh.RecalculateNormals();
+        //mesh.SetNormals(normals.ToArray());
         mesh.SetTriangles(triangles.ToArray(), 0);
 
         return mesh;   

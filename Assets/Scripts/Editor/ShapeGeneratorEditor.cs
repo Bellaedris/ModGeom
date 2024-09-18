@@ -13,5 +13,12 @@ public class ShapeGeneratorEditor : Editor
         if (GUILayout.Button("Generate"))
             generator.GenerateShape();
     }
+
+    private void OnInspectorUpdate() 
+    {
+        ShapeGenerator generator = (ShapeGenerator) target;
+        if (generator.sphereTruncateAt > generator.sphereMeridians)
+            generator.sphereTruncateAt = generator.sphereMeridians;
+    }
     
 }
