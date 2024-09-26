@@ -200,26 +200,26 @@ public class ShapeGenerator : MonoBehaviour
         var normals = new List<Vector3>();
         var triangles = new List<int>();
         
-        // both ends
-        float stepMeridians = 2f * Mathf.PI / (float)sphereMeridians;
-        float stepStacks = Mathf.PI / (float)sphereStacks;
-
-        float x, y, z;
-        for(int i = 0; i <= sphereStacks; i++)
-        {
-            y = Mathf.Cos(i * stepStacks);
-            float sinPhi = Mathf.Sin(i * stepStacks);
-            for(int j = 0; j < sphereMeridians; j++)
-            {
-                x = Mathf.Cos(j * stepMeridians) * sinPhi;
-                z = Mathf.Sin(j * stepMeridians) * sinPhi;
-                Vector3 vert = new Vector3(x, y, z);
-                vertices.Add(vert * SphereRadius);
-            }
-        }
-
         if (sphereTruncated)
         {
+            // both ends
+            float stepMeridians = 2f * Mathf.PI / (float)sphereMeridians;
+            float stepStacks = Mathf.PI / (float)sphereStacks;
+
+            float x, y, z;
+            for(int i = 0; i <= sphereStacks; i++)
+            {
+                y = Mathf.Cos(i * stepStacks);
+                float sinPhi = Mathf.Sin(i * stepStacks);
+                for(int j = 0; j < sphereMeridians; j++)
+                {
+                    x = Mathf.Cos(j * stepMeridians) * sinPhi;
+                    z = Mathf.Sin(j * stepMeridians) * sinPhi;
+                    Vector3 vert = new Vector3(x, y, z);
+                    vertices.Add(vert * SphereRadius);
+                }
+            }
+        
             float step = SphereRadius / (float)sphereStacks;
 
             // add an extra vertex on the center of each stack so we can truncate
@@ -283,13 +283,28 @@ public class ShapeGenerator : MonoBehaviour
         }
         else
         {
+            // both ends
+            float stepMeridians = 2f * Mathf.PI / (float)sphereMeridians;
+            float stepStacks = Mathf.PI / (float)(sphereStacks - 1);
+
+            float x, y, z;
+            for(int i = 1; i < sphereStacks - 1; i++)
+            {
+                y = Mathf.Cos(i * stepStacks);
+                float sinPhi = Mathf.Sin(i * stepStacks);
+                for(int j = 0; j < sphereMeridians; j++)
+                {
+                    x = Mathf.Cos(j * stepMeridians) * sinPhi;
+                    z = Mathf.Sin(j * stepMeridians) * sinPhi;
+                    Vector3 vert = new Vector3(x, y, z);
+                    vertices.Add(vert * SphereRadius);
+                }
+            }
             // bottom/top vertices
             vertices.Add(new Vector3(0, -SphereRadius, 0));
-            normals.Add(Vector3.down);
             vertices.Add(new Vector3(0, SphereRadius, 0));
-            normals.Add(Vector3.up);
 
-            for (int i = 0; i < sphereStacks; i++)
+            for (int i = 0; i < sphereStacks - 3; i++)
             {
                 int ind = i * sphereMeridians;
                 for (int j = 0; j < sphereMeridians; j++)
@@ -309,11 +324,11 @@ public class ShapeGenerator : MonoBehaviour
             // top/bottom triangles
             for(int i = 0; i < sphereMeridians; i++)
             {
-                triangles.Add(i);
                 triangles.Add((i + 1) % sphereMeridians);
+                triangles.Add(i);
                 triangles.Add(vertices.Count - 1);
             
-                int lastStackBegin = sphereMeridians * (sphereStacks - 1);
+                int lastStackBegin = sphereMeridians * (sphereStacks - 3);
                 triangles.Add(lastStackBegin + i);
                 triangles.Add(lastStackBegin + (i + 1) % sphereMeridians);
                 triangles.Add(vertices.Count - 2);
