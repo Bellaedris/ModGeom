@@ -1,7 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEditor;
 using UnityEngine;
 
 public class ShapeGenerator : MonoBehaviour
@@ -12,8 +9,7 @@ public class ShapeGenerator : MonoBehaviour
         Plane,
         Cylinder,
         Sphere,
-        Cone,
-        Pacman
+        Cone
     }
 
     public Shape shapeToGenerate;
