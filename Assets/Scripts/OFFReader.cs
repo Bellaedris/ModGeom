@@ -44,12 +44,15 @@ public class OFFReader
                         float.Parse(tokens[1], CultureInfo.InvariantCulture.NumberFormat), 
                         float.Parse(tokens[2], CultureInfo.InvariantCulture.NumberFormat)
                     );
+                // accumulate positions to calculate the barycenter of the vertices
                 centroid += vert;
                 
+                // keep track of the furthest vertex to normalize the model later on
                 if (vert.sqrMagnitude > max.sqrMagnitude) 
                     max = vert;
                 
                 vertices.Add(vert);
+                // we add an empty vertex to the normals to initialize them
                 normals.Add(Vector3.zero);
             }
             
@@ -78,9 +81,7 @@ public class OFFReader
 
             // recalculate normals
             for (int i = 0; i < numVertices; i++)
-            {
                 normals[i].Normalize();
-            }
             
             m.SetVertices(vertices);
             if(useFaceNormals)
@@ -90,34 +91,76 @@ public class OFFReader
             m.SetTriangles(triangles, 0);
 
             ret._m = m;
+            // barycenter is the mean of all vertex positions
             ret._centroid = centroid / (float)numVertices;
             
             return ret;
         }
     }
 
-    public static void WriteOFF(string filename, OFFMesh input)
+    public static void WriteOFF(string filename, ref OFFMesh input)
     {
         using (StreamWriter writer = new StreamWriter(Application.dataPath + "/Models/" + filename + "Written.off"))
         {
+            NumberFormatInfo nfi = new NumberFormatInfo();
+            nfi.NumberDecimalSeparator = ".";
+            
             writer.WriteLine("OFF");
             writer.WriteLine($"{input._m.vertexCount} {input._m.GetIndexCount(0) / 3} 0");
 
             for (int i = 0; i < input._m.vertexCount; i++)
             {
                 Vector3 vert = input._m.vertices[i];
-                writer.WriteLine($"{vert.x} " +
-                                 $"{vert.y} " + 
-                                 $"{vert.z}");
+                writer.WriteLine($"{vert.x.ToString(nfi)} " +
+                                 $"{vert.y.ToString(nfi)} " + 
+                                 $"{vert.z.ToString(nfi)}");
             }
 
-            var indices = input._m.GetIndices(0); 
+            var indices = input._m.GetIndices(0);
             for (int i = 0; i < input._m.GetIndexCount(0); i += 3)
             {
                 writer.WriteLine($"3 " +
                                  $"{indices[i]} " +
                                  $"{indices[i + 1]} " + 
                                  $"{indices[i + 2]}");
+            }
+        }
+    }
+    
+    public static void WriteOBJ(string filename, ref OFFMesh input)
+    {
+        using (StreamWriter writer = new StreamWriter(Application.dataPath + "/Models/" + filename + "Written.obj"))
+        {
+            NumberFormatInfo nfi = new NumberFormatInfo();
+            nfi.NumberDecimalSeparator = ".";
+            
+            for (int i = 0; i < input._m.vertexCount; i++)
+            {
+                Vector3 vert = input._m.vertices[i];
+                writer.WriteLine("v " +
+                                 $"{vert.x.ToString(nfi)} " +
+                                 $"{vert.y.ToString(nfi)} " + 
+                                 $"{vert.z.ToString(nfi)}");
+            }
+            
+            for (int i = 0; i < input._m.vertexCount; i++)
+            {
+                Vector3 normal = input._m.normals[i];
+                writer.WriteLine("vn " +
+                                 $"{normal.x.ToString(nfi)} " +
+                                 $"{normal.y.ToString(nfi)} " + 
+                                 $"{normal.z.ToString(nfi)}");
+            }
+
+            var indices = input._m.GetIndices(0);
+            for (int i = 0; i < input._m.GetIndexCount(0); i += 3)
+            {
+                // apparently Unity wants to have the normals links to the face too, while meshlab does not care. 
+                // Since our vertices and normals share the same index, we can write them both at once
+                writer.WriteLine($"f " +
+                                 $"{indices[i] + 1}//{indices[i] + 1} " +
+                                 $"{indices[i + 1] + 1}//{indices[i + 1] + 1} " + 
+                                 $"{indices[i + 2] + 1}//{indices[i + 2] + 1}");
             }
         }
     }
@@ -131,10 +174,12 @@ public class OFFReader
         
         List<int> indices = new List<int>();
 
-        var oldIndices = m.GetIndices(0);
-        for (int i = 0; i < oldIndices.Length / 2; i++)
+        var oldIndices = input._m.GetIndices(0);
+        for (int i = 0; i < oldIndices.Length; i += 6)
         {
             indices.Add(oldIndices[i]);
+            indices.Add(oldIndices[i + 1]);
+            indices.Add(oldIndices[i + 2]);
         }
         m.SetTriangles(indices.ToArray(), 0);
 

@@ -6,6 +6,12 @@ using UnityEngine.Rendering;
 
 public class MeshHandler : MonoBehaviour
 {
+    public enum MeshFormat
+    {
+        OFF,
+        OBJ
+    }
+    
     [Tooltip("Name of the .off file to read in Assets/Models")]
     public string offFileName;
 
@@ -13,17 +19,28 @@ public class MeshHandler : MonoBehaviour
 
     [Tooltip("Use computed face normals or Unity's RecalculateNormals")]
     public bool useFaceNormals;
-    [Tooltip("Edit the model and rewrite the edited version")]
-    public bool editAndRewrite;
+    [Tooltip("Edit the model by reomving half the triangles")]
+    public bool edit;
+    [Tooltip("Rewrite the model after reading and eventually editing")]
+    public bool rewrite;
+    public MeshFormat writingFormat;
     
     public void HandleOFFFile()
     {
         OFFMesh off = OFFReader.ReadFile(offFileName, useFaceNormals);
 
-        Exception e = new Exception("Error while deleting faces");
-        OFFReader.removeTrianglesFromOFF(ref off);
-        
-        OFFReader.WriteOFF(offFileName, off);
+        if (edit)
+            OFFReader.removeTrianglesFromOFF(ref off);
+        if (rewrite)
+            switch (writingFormat)
+            {
+                case MeshFormat.OFF:
+                    OFFReader.WriteOFF(offFileName, ref off);
+                    break;
+                case MeshFormat.OBJ:
+                    OFFReader.WriteOBJ(offFileName, ref off);
+                    break;
+            }
         
         // spawn the thing in the world
         GameObject shape = new GameObject(offFileName);

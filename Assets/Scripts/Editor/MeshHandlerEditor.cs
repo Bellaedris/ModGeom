@@ -15,7 +15,7 @@ public class MeshHandlerEditor : Editor
 
     private void OnInspectorUpdate() 
     {
-        MeshHandler generator = (MeshHandler) target;
-        
+        // Not used here
+        // MeshHandler generator = (MeshHandler) target;
     }
 }
