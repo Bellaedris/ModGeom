@@ -13,14 +13,15 @@ public class Voxelizer : MonoBehaviour
 
     public void Voxelize()
     {
-        INode scene = new Sphere(Vector3.zero, .5f);
-        for (int i = 0; i < spheres.Length - 1; i++)
-        {
-            scene = new Union(spheres[i], spheres[i + 1]);
-        }
+        // INode scene = new Sphere(Vector3.zero, .5f);
+        // for (int i = 0; i < spheres.Length - 1; i++)
+        // {
+        //     scene = new Union(spheres[i], spheres[i + 1]);
+        // }
+        Sphere sphere = new Sphere(Vector3.zero, .5f);
 
-        OctreeNode node = new OctreeNode(scene.GetBounds(), 0, voxelizationLevel);
-        node.Voxelize(scene, 0, voxelizationLevel, ref parent, ref mat);
+        OctreeNode node = new OctreeNode(sphere.GetBounds(), 0, voxelizationLevel);
+        node.Voxelize(sphere, 0, voxelizationLevel, ref parent, ref mat);
     }
 
     public void Clear()

@@ -83,11 +83,14 @@ public class OctreeNode
         if (isLeaf || currentDepth == maxDepth)
         {
             // create the gameobject
-            GameObject cube = new GameObject("Voxel");
+            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.transform.position = _aabb.center;
+            float scale = Mathf.Pow(2f, -currentDepth);
+            cube.transform.localScale = new Vector3(scale, scale, scale);
     
-            MeshFilter filter = cube.AddComponent<MeshFilter>();
-            filter.sharedMesh = Utils.CreateMeshFromBounds(_aabb);
-            var renderer = cube.AddComponent<MeshRenderer>();
+            // MeshFilter filter = cube.AddComponent<MeshFilter>();
+            // filter.sharedMesh = Utils.CreateMeshFromBounds(_aabb);
+            var renderer = cube.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = mat;
             cube.transform.SetParent(parent.transform);
         }
