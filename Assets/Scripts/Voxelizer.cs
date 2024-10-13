@@ -3,25 +3,81 @@ using System.Collections.Generic;
 using UnityEngine;
 using vxl;
 
+[System.Serializable]
+public struct SphereParams
+{
+    public Vector3 center;
+    public float radius;
+}
+
+public enum PrimitiveTypes
+{
+    Sphere,
+    Taurus
+}
+
+public enum PrimitiveOperator
+{
+    Union,
+    Intersection,
+    Difference
+}
+
 public class Voxelizer : MonoBehaviour
 {
+    [Tooltip("Gameobject that will wrap our voxels (just for convenience)")]
     public GameObject parent;
+    [Tooltip("Material to avoid a bunch of pink voxels for the URP people out there")]
     public Material mat;
+    [Tooltip("Maximal depth of our subdivision. A max depth of 5 will give you up to 8^5, be careful not to input huge numbers.")]
     public int voxelizationLevel = 1;
+    public PrimitiveTypes primitive = PrimitiveTypes.Sphere;
+    [Tooltip("Operator used to combine your spheres")]
+    public PrimitiveOperator primitiveOperator = PrimitiveOperator.Union;
+    [Header("spheres params")]
     [SerializeField]
-    public Sphere[] spheres;
+    public SphereParams[] spheres;
+    [Header("Taurus params")]
+    public Vector3 taurusCenter;
+    public float taurusOuterRadius;
+    public float taurusInnerRadius;
 
     public void Voxelize()
     {
-        // INode scene = new Sphere(Vector3.zero, .5f);
-        // for (int i = 0; i < spheres.Length - 1; i++)
-        // {
-        //     scene = new Union(spheres[i], spheres[i + 1]);
-        // }
-        Sphere sphere = new Sphere(Vector3.zero, .5f);
+        float begin = Time.realtimeSinceStartup;
+        INode scene;
+        switch (primitive)
+        {
+            case PrimitiveTypes.Taurus:
+                scene = new Taurus(taurusCenter, taurusInnerRadius, taurusOuterRadius);
+                break;
+            case PrimitiveTypes.Sphere:
+                scene = new Sphere(spheres[0].center, spheres[0].radius);
+                for (int i = 1; i < spheres.Length; i++)
+                {
+                    scene = primitiveOperator switch
+                    {
+                        PrimitiveOperator.Union => new Union(new Sphere(spheres[i].center, spheres[i].radius),
+                            new Sphere(spheres[i - 1].center, spheres[i - 1].radius)),
+                        PrimitiveOperator.Intersection => new Intersection(
+                            new Sphere(spheres[i].center, spheres[i].radius),
+                            new Sphere(spheres[i - 1].center, spheres[i - 1].radius)),
+                        PrimitiveOperator.Difference => new Difference(new Sphere(spheres[i].center, spheres[i].radius),
+                            new Sphere(spheres[i - 1].center, spheres[i - 1].radius)),
+                        _ => scene
+                    };
+                }
+                break;
+            default:
+                scene = new Sphere(new Vector3(0, 0, 0), .5f);
+                break;
+        }
 
-        OctreeNode node = new OctreeNode(sphere.GetBounds(), 0, voxelizationLevel);
-        node.Voxelize(sphere, 0, voxelizationLevel, ref parent, ref mat);
+        Bounds b = scene.GetBounds();
+        OctreeNode node = new OctreeNode(b, 0, voxelizationLevel);
+        node.Voxelize(scene, 0, voxelizationLevel, b.size.x,  ref parent, ref mat);
+
+        Debug.Log("Voxelized " + parent.transform.childCount + " voxels in " + (Time.realtimeSinceStartup - begin) + "s");
     }
 
     public void Clear()
@@ -31,3 +87,20 @@ public class Voxelizer : MonoBehaviour
             GameObject.DestroyImmediate(parent.transform.GetChild(0).gameObject);
     }
 }
+
+// Benchmark:
+// 5 lvl, Sphere:
+// 17256 in 0.5957
+//
+// 6 lvl, Sphere:
+// 137376 in 5.17
+//
+// 5 lvl, Sphere with adaptative:
+// 4264 in 0.1638
+//
+// 6 lvl, Sphere with adaptative:
+// 16384 in 0.79
+//
+// 7 lvl, Sphere with adaptative:
+// 64464 in 4.01
+// Imprecisions begin to appear… We should improve our quantification of how much volume is Inside.

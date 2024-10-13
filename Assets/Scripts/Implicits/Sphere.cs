@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace vxl
 {
-    [System.Serializable]
     public class Sphere : INode
     {
         [SerializeField]
