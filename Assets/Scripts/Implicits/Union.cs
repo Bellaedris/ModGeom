@@ -16,12 +16,13 @@ namespace vxl
             _left = left;
             _right = right;
 
+            _bounds = new Bounds();
             Bounds leftBounds = left.GetBounds();
             Bounds rightBounds = right.GetBounds();
-            leftBounds.Expand(rightBounds.min);
-            leftBounds.Expand(rightBounds.max);
-            
-            _bounds = leftBounds;
+            _bounds.Encapsulate(leftBounds.min);
+            _bounds.Encapsulate(leftBounds.max);
+            _bounds.Encapsulate(rightBounds.min);
+            _bounds.Encapsulate(rightBounds.max);
         }
         
         public float Distance(Vector3 point)
