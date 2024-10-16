@@ -15,7 +15,8 @@ public enum PrimitiveTypes
     Sphere,
     Taurus,
     Plane,
-    Octahedron
+    Octahedron,
+    Terrain
 }
 
 public enum PrimitiveOperator
@@ -23,6 +24,13 @@ public enum PrimitiveOperator
     Union,
     Intersection,
     Difference
+}
+
+[System.Serializable]
+public struct BiomeParams
+{
+    public float height;
+    public Material color;
 }
 
 public class Voxelizer : MonoBehaviour
@@ -51,6 +59,14 @@ public class Voxelizer : MonoBehaviour
     [Header("Octahedron params")]
     public Vector3 octahedronCenter;
     public float octahedronLength;
+    [Header("Terrain params")] 
+    public int terrainSeed;
+    public float terrainScale;
+    public int terrainOctaves;
+    public float terrainGain;
+    public float terrainLacunarity;
+    public float terrainMaxHeight;
+    public BiomeParams[] biomes;
 
     private INode _scene;
 
@@ -59,6 +75,16 @@ public class Voxelizer : MonoBehaviour
         float begin = Time.realtimeSinceStartup;
         switch (primitive)
         {
+            case PrimitiveTypes.Terrain:
+                _scene = new Noise(planeNormal,
+                    planeDistance,
+                    terrainSeed,
+                    terrainOctaves,
+                    terrainScale,
+                    terrainGain,
+                    terrainLacunarity,
+                    terrainMaxHeight);
+                break;
             case PrimitiveTypes.Octahedron:
                 _scene = new Octahedron(octahedronCenter, octahedronLength);
                 break;
@@ -92,7 +118,7 @@ public class Voxelizer : MonoBehaviour
 
         Bounds b = _scene.GetBounds();
         OctreeNode node = new OctreeNode(b, 0, voxelizationLevel);
-        node.Voxelize(_scene, 0, voxelizationLevel, b.size.x,  ref parent, ref mat, ref voxelPrefab);
+        node.Voxelize(_scene, 0, voxelizationLevel, b.size.x,  ref parent, biomes, ref voxelPrefab);
 
         Debug.Log("Voxelized " + parent.transform.childCount + " voxels in " + (Time.realtimeSinceStartup - begin) + "s");
     }

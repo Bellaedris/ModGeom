@@ -5,13 +5,14 @@ using UnityEngine;
 
 namespace vxl
 {
-    public class Noise : Node
+    public class Noise : INode
     {
         private FastNoiseLite _noise;
         private float _maxHeight;
         
         private Vector3 _normal;
         private float _height;
+        private Bounds _bounds;
 
         public Noise(Vector3 normal, float height, int seed, int octaves, float scale, float gain, float lacunarity, float maxHeight)
         {
@@ -35,10 +36,24 @@ namespace vxl
         {
             return Vector3.Dot(point, _normal) + _height + _noise.GetNoise(point.x, point.z) * _maxHeight;
         }
-        
-        public Color GetColor()
+
+        public Bounds GetBounds()
         {
-            
+            // an infinite plane doesn't really has bounds....
+            // we return a unit square instead
+            return _bounds;
+        }
+
+        public Color GetColor(Vector3 point)
+        {
+            float h = _noise.GetNoise(point.x, point.z);
+            if (h < -.5f)
+                return Color.white;
+            if (h < 0f)
+                return Color.grey;
+            if (h < .5f)
+                return Color.green;
+            return Color.blue;
         }
     }
 }

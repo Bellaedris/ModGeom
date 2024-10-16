@@ -97,7 +97,7 @@ namespace vxl
             return edgesInside;
         }
 
-        public void Voxelize(INode target, int currentDepth, int maxDepth, float scale, ref GameObject parent, ref Material mat, ref GameObject prefab)
+        public void Voxelize(INode target, int currentDepth, int maxDepth, float scale, ref GameObject parent, BiomeParams[] mat, ref GameObject prefab)
         {
             // if the voxel has more than half of its edge in the primitive, we can place a voxel. 
             // otherwise, keep the subdivision going
@@ -118,7 +118,17 @@ namespace vxl
                 // MeshFilter filter = cube.AddComponent<MeshFilter>();
                 // filter.sharedMesh = Utils.CreateMeshFromBounds(_aabb);
                 var renderer = cube.GetComponent<MeshRenderer>();
-                renderer.sharedMaterial = mat;
+                // renderer.sharedMaterial = mat;
+                // renderer.sharedMaterial.color = target.GetColor(_aabb.center);
+                
+                //handle mesh color. A bit ugly but since most voxels don't have a real meaning to a color....
+                Color biomeColor = target.GetColor(_aabb.center);
+                for (int i = 0; i < mat.Length; i++)
+                {
+                    if (mat[i].color.color == biomeColor)
+                        renderer.sharedMaterial = mat[i].color;
+                }
+                
                 cube.transform.SetParent(parent.transform);
                 var voxel = cube.GetComponent<Voxel>();
                 // bigger voxels have bigger potential
@@ -128,7 +138,7 @@ namespace vxl
             {
                 foreach (var child in _children)
                 {
-                    child.Voxelize(target, currentDepth + 1, maxDepth, scale, ref parent, ref mat, ref prefab);
+                    child.Voxelize(target, currentDepth + 1, maxDepth, scale, ref parent, mat, ref prefab);
                 }
             }
         }

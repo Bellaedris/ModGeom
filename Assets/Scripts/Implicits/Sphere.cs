@@ -30,5 +30,10 @@ namespace vxl
         {
             return _bounds;
         }
+
+        public Color GetColor(Vector3 point)
+        {
+            return Color.white;
+        }
     }
 }

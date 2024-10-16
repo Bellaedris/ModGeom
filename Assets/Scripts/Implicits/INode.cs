@@ -7,6 +7,7 @@ namespace vxl
     public interface INode
     {
         public float Distance(Vector3 point);
+        public Color GetColor(Vector3 point);
         public Bounds GetBounds();
     }
 }

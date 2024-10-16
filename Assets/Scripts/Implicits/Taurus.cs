@@ -45,5 +45,10 @@ namespace vxl
         {
             return _aabb;
         }
+
+        public Color GetColor(Vector3 point)
+        {
+            return Color.white;
+        }
     }
 }
