@@ -36,7 +36,7 @@ namespace vxl
             Vector3 localPoint = point - _center;
             
             float lengthXZ = new Vector2(localPoint.x, localPoint.z).magnitude;
-            Vector2 q = new Vector2(lengthXZ - _outerRadius, point.y);
+            Vector2 q = new Vector2(lengthXZ - _outerRadius, localPoint.y);
             
             return q.magnitude - _innerRadius;
         }

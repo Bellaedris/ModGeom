@@ -60,19 +60,15 @@ namespace vxl
         public bool Contains(INode target)
         {
             if (isLeaf)
-            {
                 return target.Distance(_aabb.center) <= 0;
-            }
-            else
+            
+            bool contains = false;
+            for (int i = 0; i < 8; i++)
             {
-                bool contains = false;
-                for (int i = 0; i < 8; i++)
-                {
-                    contains |= _children[i].Contains(target);
-                }
-
-                return contains;
+                contains |= _children[i].Contains(target);
             }
+
+            return contains;
         }
 
         /*
@@ -101,7 +97,7 @@ namespace vxl
             return edgesInside;
         }
 
-        public void Voxelize(INode target, int currentDepth, int maxDepth, float scale, ref GameObject parent, ref Material mat)
+        public void Voxelize(INode target, int currentDepth, int maxDepth, float scale, ref GameObject parent, ref Material mat, ref GameObject prefab)
         {
             // if the voxel has more than half of its edge in the primitive, we can place a voxel. 
             // otherwise, keep the subdivision going
@@ -114,7 +110,7 @@ namespace vxl
             if (edgesInside > 7 || isLeaf || currentDepth == maxDepth)
             {
                 // create the gameobject
-                GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                GameObject cube = GameObject.Instantiate(prefab);
                 cube.transform.position = _aabb.center;
                 float levelScale = Mathf.Pow(2f, -currentDepth);
                 cube.transform.localScale = new Vector3(scale * levelScale, scale * levelScale, scale * levelScale);
@@ -124,12 +120,15 @@ namespace vxl
                 var renderer = cube.GetComponent<MeshRenderer>();
                 renderer.sharedMaterial = mat;
                 cube.transform.SetParent(parent.transform);
+                var voxel = cube.GetComponent<Voxel>();
+                // bigger voxels have bigger potential
+                voxel.AddPotential(100f * levelScale);
             }
             else
             {
                 foreach (var child in _children)
                 {
-                    child.Voxelize(target, currentDepth + 1, maxDepth, scale, ref parent, ref mat);
+                    child.Voxelize(target, currentDepth + 1, maxDepth, scale, ref parent, ref mat, ref prefab);
                 }
             }
         }

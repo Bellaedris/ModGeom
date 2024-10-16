@@ -23,6 +23,9 @@ namespace vxl
             _bounds.Encapsulate(leftBounds.max);
             _bounds.Encapsulate(rightBounds.min);
             _bounds.Encapsulate(rightBounds.max);
+
+            float maxBound = Mathf.Max(_bounds.extents.x, _bounds.extents.y, _bounds.extents.z);
+            _bounds.extents = new Vector3(maxBound, maxBound, maxBound);
         }
         
         public float Distance(Vector3 point)

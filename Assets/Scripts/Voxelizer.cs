@@ -13,7 +13,9 @@ public struct SphereParams
 public enum PrimitiveTypes
 {
     Sphere,
-    Taurus
+    Taurus,
+    Plane,
+    Octahedron
 }
 
 public enum PrimitiveOperator
@@ -25,6 +27,7 @@ public enum PrimitiveOperator
 
 public class Voxelizer : MonoBehaviour
 {
+    public GameObject voxelPrefab;
     [Tooltip("Gameobject that will wrap our voxels (just for convenience)")]
     public GameObject parent;
     [Tooltip("Material to avoid a bunch of pink voxels for the URP people out there")]
@@ -41,21 +44,35 @@ public class Voxelizer : MonoBehaviour
     public Vector3 taurusCenter;
     public float taurusOuterRadius;
     public float taurusInnerRadius;
+    [Header("Plane params")] 
+    [Tooltip("Normal direction of the plane. Doesn't need to be normalized")]
+    public Vector3 planeNormal;
+    public float planeDistance;
+    [Header("Octahedron params")]
+    public Vector3 octahedronCenter;
+    public float octahedronLength;
+
+    private INode _scene;
 
     public void Voxelize()
     {
         float begin = Time.realtimeSinceStartup;
-        INode scene;
         switch (primitive)
         {
+            case PrimitiveTypes.Octahedron:
+                _scene = new Octahedron(octahedronCenter, octahedronLength);
+                break;
+            case PrimitiveTypes.Plane:
+                _scene = new vxl.Plane(planeNormal, planeDistance);
+                break;
             case PrimitiveTypes.Taurus:
-                scene = new Taurus(taurusCenter, taurusInnerRadius, taurusOuterRadius);
+                _scene = new Taurus(taurusCenter, taurusInnerRadius, taurusOuterRadius);
                 break;
             case PrimitiveTypes.Sphere:
-                scene = new Sphere(spheres[0].center, spheres[0].radius);
+                _scene = new Sphere(spheres[0].center, spheres[0].radius);
                 for (int i = 1; i < spheres.Length; i++)
                 {
-                    scene = primitiveOperator switch
+                    _scene = primitiveOperator switch
                     {
                         PrimitiveOperator.Union => new Union(new Sphere(spheres[i].center, spheres[i].radius),
                             new Sphere(spheres[i - 1].center, spheres[i - 1].radius)),
@@ -64,18 +81,18 @@ public class Voxelizer : MonoBehaviour
                             new Sphere(spheres[i - 1].center, spheres[i - 1].radius)),
                         PrimitiveOperator.Difference => new Difference(new Sphere(spheres[i].center, spheres[i].radius),
                             new Sphere(spheres[i - 1].center, spheres[i - 1].radius)),
-                        _ => scene
+                        _ => _scene
                     };
                 }
                 break;
             default:
-                scene = new Sphere(new Vector3(0, 0, 0), .5f);
+                _scene = new Sphere(new Vector3(0, 0, 0), .5f);
                 break;
         }
 
-        Bounds b = scene.GetBounds();
+        Bounds b = _scene.GetBounds();
         OctreeNode node = new OctreeNode(b, 0, voxelizationLevel);
-        node.Voxelize(scene, 0, voxelizationLevel, b.size.x,  ref parent, ref mat);
+        node.Voxelize(_scene, 0, voxelizationLevel, b.size.x,  ref parent, ref mat, ref voxelPrefab);
 
         Debug.Log("Voxelized " + parent.transform.childCount + " voxels in " + (Time.realtimeSinceStartup - begin) + "s");
     }
