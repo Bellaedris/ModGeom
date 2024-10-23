@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using vxl;
 
 [RequireComponent(typeof(SphereCollider))]
 public class PotentialSphere : MonoBehaviour

@@ -12,16 +12,18 @@ namespace vxl
         
         private Vector3 _normal;
         private float _height;
+        private Vector3 _center;
         private Bounds _bounds;
 
-        public Noise(Vector3 normal, float height, int seed, int octaves, float scale, float gain, float lacunarity, float maxHeight)
+        public Noise(Vector3 normal, Vector3 center, float height, int seed, int octaves, float scale, float gain, float lacunarity, float maxHeight)
         {
             _noise = new FastNoiseLite();
             _normal = normal.normalized;
             _height = height;
             _maxHeight = maxHeight;
+            _center = center;
             
-            _bounds = new Bounds(Vector3.zero + _normal * _height, Vector3.one);
+            _bounds = new Bounds(_center + _normal * _height, Vector3.one);
             
             _noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
             _noise.SetFractalType(FastNoiseLite.FractalType.FBm);
