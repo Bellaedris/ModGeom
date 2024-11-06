@@ -11,11 +11,14 @@ public class MeshHandlerEditor : Editor
         MeshHandler generator = (MeshHandler) target;
         if (GUILayout.Button("Generate"))
             generator.HandleOFFFile();
+        if (GUILayout.Button("Simplify"))
+            generator.Simplify();
     }
 
     private void OnInspectorUpdate() 
     {
-        // Not used here
-        // MeshHandler generator = (MeshHandler) target;
+        MeshHandler generator = (MeshHandler) target;
+        if (generator.octreeDepth < 3)
+            generator.octreeDepth = 3;
     }
 }

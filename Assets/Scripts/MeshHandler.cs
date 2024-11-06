@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using vxl;
 
 public class MeshHandler : MonoBehaviour
 {
@@ -24,6 +25,10 @@ public class MeshHandler : MonoBehaviour
     [Tooltip("Rewrite the model after reading and eventually editing")]
     public bool rewrite;
     public MeshFormat writingFormat;
+    
+    [Header("Mesh simplification")]
+    public MeshFilter meshToSimplify;
+    public int octreeDepth = 3;
     
     public void HandleOFFFile()
     {
@@ -50,5 +55,43 @@ public class MeshHandler : MonoBehaviour
         filter.sharedMesh = off._m;
         var renderer = shape.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = mat;
+    }
+
+    public void Simplify()
+    {
+        var vertices = meshToSimplify.sharedMesh.vertices;
+        var indices = meshToSimplify.sharedMesh.triangles;
+        OctreeNode oc = new OctreeNode(meshToSimplify.sharedMesh.bounds, 0, octreeDepth);
+        
+        var voxelsToVertices = oc.FindVoxelForEachVertex(meshToSimplify.sharedMesh.vertices);
+        var replaceIndexWith = new Dictionary<int, int>();
+
+        foreach (var voxelContent in voxelsToVertices)
+        {
+            // find the barycenter of the voxels
+            var barycenterIndex = voxelContent.Value[0];
+            Vector3 barycenter = vertices[voxelContent.Value[0]];
+            for(var i = 1; i < voxelContent.Value.Count; i++)
+            {
+                barycenter += vertices[voxelContent.Value[i]];
+                // store all the vertices that should be deleted (map with the one to replace with)
+                replaceIndexWith.Add(voxelContent.Value[i], barycenterIndex);
+            }
+            
+            barycenter /= voxelContent.Value.Count;
+            
+            // move the first voxel to the barycenter
+            vertices[voxelContent.Value[0]] = barycenter;
+        }
+        // replace all the indices to replace with the new barycenter index
+        for (int i = 0; i < indices.Length; i++)
+        {
+            if(replaceIndexWith.ContainsKey(indices[i]))
+                indices[i] = replaceIndexWith[indices[i]];
+        }
+        
+        meshToSimplify.sharedMesh.SetVertices(vertices);
+        meshToSimplify.sharedMesh.SetTriangles(indices, 0);
+        meshToSimplify.sharedMesh.RecalculateNormals();
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 // public interface IOctreeNode
 // {
@@ -57,6 +58,44 @@ namespace vxl
             }
         }
 
+        /// <summary>
+        /// Build a dictionnary with, for each voxel, all the vertices contained inside this voxel.
+        /// </summary>
+        /// <param name="vertices">The vertices of a mesh</param>
+        /// <returns>A map of voxels and list of indices</returns>
+        public Dictionary<Vector3, List<int>> FindVoxelForEachVertex(Vector3[] vertices)
+        {
+            var result = new Dictionary<Vector3, List<int>>();
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                // find the voxel our vertex is in
+                Vector3 voxel = FindNodeOfVertex(vertices[i]);
+                if (!result.ContainsKey(voxel))
+                {
+                    result.Add(voxel, new List<int>());
+                }
+
+                result[voxel].Add(i);
+            }
+
+            return result;
+        }
+
+        private Vector3 FindNodeOfVertex(Vector3 vertex)
+        {
+            if(isLeaf)
+                return _aabb.Contains(vertex) ? _aabb.center : Vector3.zero;
+            
+            var position = Vector3.zero;
+            foreach (var child in _children)
+            {
+                position += child.FindNodeOfVertex(vertex);
+            }
+
+            return position;
+        }
+
         public bool Contains(INode target)
         {
             if (isLeaf)
@@ -104,6 +143,9 @@ namespace vxl
             int edgesInside = EdgesInVolume(target);
 
             // if the voxel has no volume inside, return
+            // highly inefficient... I'm recursing through all the voxels.
+            // there's a lot of time to gain here but i'm not sure how yet.
+            // TODO handle this horrible bottleneck
             if (!Contains(target))
                 return;
 
