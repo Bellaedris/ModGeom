@@ -65,6 +65,9 @@ public class MeshHandler : MonoBehaviour
         
         var voxelsToVertices = oc.FindVoxelForEachVertex(meshToSimplify.sharedMesh.vertices);
         var replaceIndexWith = new Dictionary<int, int>();
+        
+        var newVertices = new List<Vector3>();
+        var newIndices = new List<int>();
 
         foreach (var voxelContent in voxelsToVertices)
         {
@@ -74,24 +77,59 @@ public class MeshHandler : MonoBehaviour
             for(var i = 1; i < voxelContent.Value.Count; i++)
             {
                 barycenter += vertices[voxelContent.Value[i]];
-                // store all the vertices that should be deleted (map with the one to replace with)
-                replaceIndexWith.Add(voxelContent.Value[i], barycenterIndex);
             }
             
             barycenter /= voxelContent.Value.Count;
+            int newBarycenterIndex = newVertices.Count;
+            newVertices.Add(barycenter);
+            
+            foreach (var index in voxelContent.Value)
+            {
+                // store all the vertices that should be deleted (map with the one to replace with)
+                replaceIndexWith.Add(index, newBarycenterIndex);
+            }
             
             // move the first voxel to the barycenter
             vertices[voxelContent.Value[0]] = barycenter;
         }
+        
         // replace all the indices to replace with the new barycenter index
-        for (int i = 0; i < indices.Length; i++)
+        for (int i = 0; i < indices.Length; i += 3)
         {
-            if(replaceIndexWith.ContainsKey(indices[i]))
-                indices[i] = replaceIndexWith[indices[i]];
+            int a = replaceIndexWith[indices[i]];
+            int b = replaceIndexWith[indices[i + 1]];
+            int c = replaceIndexWith[indices[i + 2]];
+
+            // only insert unique triangles
+            if (a != b && a != c && b != c)
+            {
+                newIndices.Add(a);
+                newIndices.Add(b);
+                newIndices.Add(c);
+            }
         }
         
-        meshToSimplify.sharedMesh.SetVertices(vertices);
-        meshToSimplify.sharedMesh.SetTriangles(indices, 0);
+        meshToSimplify.sharedMesh.Clear();
+        meshToSimplify.sharedMesh.SetVertices(newVertices);
+        meshToSimplify.sharedMesh.SetTriangles(newIndices, 0);
         meshToSimplify.sharedMesh.RecalculateNormals();
+        
+        
+        
+        if (rewrite)
+        {
+            OFFMesh off;
+            off._m = meshToSimplify.sharedMesh;
+            off._centroid = Vector3.zero;
+            switch (writingFormat)
+            {
+                case MeshFormat.OFF:
+                    OFFReader.WriteOFF(offFileName, ref off);
+                    break;
+                case MeshFormat.OBJ:
+                    OFFReader.WriteOBJ(offFileName, ref off);
+                    break;
+            }
+        }
     }
 }
