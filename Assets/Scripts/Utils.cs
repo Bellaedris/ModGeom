@@ -50,4 +50,9 @@ public class Utils
         mesh.RecalculateNormals();
         return mesh;
     }
+
+    public static float Normalize01(float value, float min, float max)
+    {
+        return (value - min) / (max - min);
+    }
 }
