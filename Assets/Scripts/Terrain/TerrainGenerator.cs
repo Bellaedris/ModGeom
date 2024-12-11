@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Random = UnityEngine.Random;
 
 namespace Terrain
 {
@@ -83,9 +85,17 @@ namespace Terrain
             return new Vector3(x, data[index], z);
         }
 
-        int WorldToIndex(Vector3 pos)
+        int WorldToIndex(float x, float y)
         {
-            return GetIndex(pos.x * (float)nx, pos.z * (float)ny);
+            return GetIndex(x / width * nx, y / height * ny);
+        }
+
+        Vector3 IndexToWorld(int index)
+        {
+            int x = index % nx; // Column
+            int z = index / nx; // Row
+
+            return new Vector3((float)x / nx * width, data[index], (float)z / ny * height);
         }
     
         public Mesh GenerateTerrain()
@@ -129,19 +139,23 @@ namespace Terrain
             return mesh;
         }
 
-        void HydraulicErosion(int iterations)
+        public void HydraulicErosion(int iterations)
         {
             int maxDropletMovements = 100;
             for (int i = 0; i < iterations; i++)
             {
                 //pick random coords to start the algorithm
-                int px = Random.Range(0, nx);
-                int py = Random.Range(0, ny);
-                float posX, posY;
-                float height = GetHeight(px, py);
-                float s = 0, v = 0, w = 1; // sediments, flow speed, amount of water
+                float posX = Random.Range(0f, nx - 1f); 
+                float posY = Random.Range(0f, ny - 1f);
+                float sediment = 0, velocity = 0, waterAmount = 1; // sediments, flow speed, amount of water
+                
                 for (int j = 0; j < maxDropletMovements; j++)
                 {
+                    int px = (int)posX;
+                    int py = (int)(posY);
+                
+                    float curHeight = GetHeight(px, py);
+                    
                     // compute gradient
                     Vector2 gradient = GetGradient(px, py);
                     float dirX, dirY;
@@ -153,32 +167,50 @@ namespace Terrain
                     
                     // else direction is the normalized gradient
                     Vector2 direction = gradient.normalized;
+                    posX += direction.x;
+                    posY += direction.y;
                     
                     // sample height at cell at direction
-                    int newX = px + Mathf.FloorToInt(direction.x);
-                    int newY = py + Mathf.FloorToInt(direction.y);
+                    int newX = (int)posX;
+                    int newY = (int)posY;
                     float newH = GetHeight(newX, newY);
+                    float heightDiff = newH - curHeight;
 
-                    if (newH > height)
-                    {
-                        float heightDiff = newH - height;
-                        if (heightDiff > s)
-                        {
-                            data[GetIndex(px, py)] += s;
-                            s = 0;
-                            break;
-                        }
-
-                        data[GetIndex(px, py)] += heightDiff;
-                        s -= heightDiff;
-                        v = 0; // the velocity is lost when we deposit sediments
-                    }
+                    // erode if current is lower than new
+                    // if (newH > curHeight)
+                    // {
+                    //     if (heightDiff > sediment)
+                    //     {
+                    //         data[GetIndex(px, py)] += sediment;
+                    //         sediment = 0;
+                    //         break;
+                    //     }
+                    //
+                    //     data[GetIndex(px, py)] += heightDiff;
+                    //     sediment -= heightDiff;
+                    //     velocity = 0; // the velocity is lost when we deposit sediments
+                    // }
 
                     // q the transport capacity = max(diffHeight, minSlope) * v * w * Kq (constant for soil carry capacity)
+                    float q = Mathf.Max(heightDiff, 0.05f) * velocity * waterAmount * 1f;
+                    float sDiff = sediment - q;
+                    // if there is more sediments than the capacity, drop the difference
+                    // if (sDiff > 0f)
+                    // {
+                    //     data[GetIndex(px, py)] += sDiff;
+                    //     sediment = q;
+                    // }
+                    // else
+                    // {
+                    //     data[GetIndex(px, py)] -= 0.01f;
+                    //     sediment += 0.01f;
+                    // }
                     // if the droplet has more sediments than the max transport capacity, deposit the difference
                     // else, erode to add sediments to the droplet and remove height from the terrain
 
-
+                    velocity = Mathf.Sqrt(velocity * velocity + 1f/* gravity modifyer */ * heightDiff);
+                    waterAmount *= 1f; // evaporation rate
+                    Debug.DrawLine(IndexToWorld(GetIndex(px, py)), IndexToWorld(GetIndex(newX, newY)), Color.red, 20f, false);
                 }
             }
         }

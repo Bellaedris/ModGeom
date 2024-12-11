@@ -27,6 +27,9 @@ namespace Terrain
         public float gain = .5f;
         public float scale = 1f;
         public MapType mapType;
+
+        [Header("hydraulic erosion")] 
+        public int erosionSteps;
     
         private Terrain terrainGenerator;
 
@@ -73,7 +76,7 @@ namespace Terrain
 
         public void Erode()
         {
-            
+            terrainGenerator.HydraulicErosion(erosionSteps);
             UpdateModel();
         }
     }
