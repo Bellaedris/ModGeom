@@ -1,12 +1,35 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 using vxl;
 
 public class MeshHandler : MonoBehaviour
 {
+    struct Edge : IEquatable<Edge>
+    {
+        public Vector3 a, b;
+        
+        public Edge(Vector3 a, Vector3 b) { this.a = a; this.b = b; }
+
+        public bool Equals(Edge other)
+        {
+            return a.Equals(other.a) && b.Equals(other.b);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Edge other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(a, b);
+        }
+    }
+    
     public enum MeshFormat
     {
         OFF,
@@ -29,6 +52,9 @@ public class MeshHandler : MonoBehaviour
     [Header("Mesh simplification")]
     public MeshFilter meshToSimplify;
     public int octreeDepth = 3;
+    
+    [Header("Mesh Subdivision")]
+    public MeshFilter meshToSubdivide;
     
     public void HandleOFFFile()
     {
@@ -114,8 +140,6 @@ public class MeshHandler : MonoBehaviour
         meshToSimplify.sharedMesh.SetTriangles(newIndices, 0);
         meshToSimplify.sharedMesh.RecalculateNormals();
         
-        
-        
         if (rewrite)
         {
             OFFMesh off;
@@ -132,4 +156,50 @@ public class MeshHandler : MonoBehaviour
             }
         }
     }
+
+    public void Subdivide()
+    {
+        var edges = GetMeshEdges(meshToSubdivide.sharedMesh);
+        foreach (var edge in edges)
+        {
+            
+        }
+    }
+
+    private List<Edge> GetMeshEdges(Mesh mesh)
+    {
+        var edges = new HashSet<Edge>();
+        var vertices = mesh.vertices;
+        var triangles = mesh.triangles;
+
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            int a = triangles[i];
+            int b = triangles[i + 1];
+            int c = triangles[i + 2];
+
+            Vector3 va = vertices[a];
+            Vector3 vb = vertices[b];;
+            Vector3 vc = vertices[c];;
+            
+            // add the edges and sort them to have the lowest index on the left to avoid duplicate
+            if (b < a)
+                edges.Add(new Edge(vb, va));
+            else
+                edges.Add(new Edge(va, vb));
+            
+            if (c < a)
+                edges.Add(new Edge(vc, va));
+            else
+                edges.Add(new Edge(va, vc));
+            
+            if (c < b)
+                edges.Add(new Edge(vc, vb));
+            else
+                edges.Add(new Edge(vb, vc));
+        }
+
+        return edges.ToList();
+    }
+    
 }
