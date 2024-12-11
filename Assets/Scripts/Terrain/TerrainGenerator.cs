@@ -129,6 +129,60 @@ namespace Terrain
             return mesh;
         }
 
+        void HydraulicErosion(int iterations)
+        {
+            int maxDropletMovements = 100;
+            for (int i = 0; i < iterations; i++)
+            {
+                //pick random coords to start the algorithm
+                int px = Random.Range(0, nx);
+                int py = Random.Range(0, ny);
+                float posX, posY;
+                float height = GetHeight(px, py);
+                float s = 0, v = 0, w = 1; // sediments, flow speed, amount of water
+                for (int j = 0; j < maxDropletMovements; j++)
+                {
+                    // compute gradient
+                    Vector2 gradient = GetGradient(px, py);
+                    float dirX, dirY;
+                    // compute direction of next cell
+                    if (gradient.magnitude < 0.001f)
+                    {
+                        // if slope is too low, pick a random dir
+                    }
+                    
+                    // else direction is the normalized gradient
+                    Vector2 direction = gradient.normalized;
+                    
+                    // sample height at cell at direction
+                    int newX = px + Mathf.FloorToInt(direction.x);
+                    int newY = py + Mathf.FloorToInt(direction.y);
+                    float newH = GetHeight(newX, newY);
+
+                    if (newH > height)
+                    {
+                        float heightDiff = newH - height;
+                        if (heightDiff > s)
+                        {
+                            data[GetIndex(px, py)] += s;
+                            s = 0;
+                            break;
+                        }
+
+                        data[GetIndex(px, py)] += heightDiff;
+                        s -= heightDiff;
+                        v = 0; // the velocity is lost when we deposit sediments
+                    }
+
+                    // q the transport capacity = max(diffHeight, minSlope) * v * w * Kq (constant for soil carry capacity)
+                    // if the droplet has more sediments than the max transport capacity, deposit the difference
+                    // else, erode to add sediments to the droplet and remove height from the terrain
+
+
+                }
+            }
+        }
+
         public Texture2D GenerateTexture()
         {
             return TextureGenerator.GenerateTexture(ref data, ref slopeMap.data, maxSlope, nx, ny);
