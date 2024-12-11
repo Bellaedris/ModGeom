@@ -146,7 +146,7 @@ namespace Terrain
         
         public Texture2D GenerateSlopeTexture()
         {
-            return TextureGenerator.GenerateGenericGreyscaleTexture(ref data, nx, ny, maxSlope);
+            return TextureGenerator.GenerateGenericGreyscaleTexture(ref slopeMap.data, nx, ny, maxSlope);
         }
 
         private void ComputeSlopeMap()
