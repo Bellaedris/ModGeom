@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Terrain
 {
@@ -29,7 +30,14 @@ namespace Terrain
         public MapType mapType;
 
         [Header("hydraulic erosion")] 
-        public int erosionSteps;
+        public int erosionSteps = 100;
+        public float soilCapacity = 10f;
+        public float minSlope = .05f;
+        public float evaporationCoeff = .001f;
+        public float erosionSpeed = .9f;
+        public float depositionSpeed = .02f;
+        public float directionInertia = .1f;
+        public float gravity = 20f;
     
         private Terrain terrainGenerator;
 
@@ -76,7 +84,14 @@ namespace Terrain
 
         public void Erode()
         {
-            terrainGenerator.HydraulicErosion(erosionSteps);
+            terrainGenerator.HydraulicErosion(erosionSteps,
+                soilCapacity,
+                minSlope,
+                evaporationCoeff,
+                erosionSpeed,
+                depositionSpeed,
+                directionInertia,
+                gravity);
             UpdateModel();
         }
     }
